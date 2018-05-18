@@ -68,7 +68,7 @@ end;
 
 architecture behave of inverter is
 begin
-	ouput <= not input;
+	output <= not input;
 end behave;
 
 -- or
@@ -88,6 +88,6 @@ begin
 	gate: for i in 0 to width-1 generate
 		temp(i+1) <= a(i) or temp(i);
 	end generate;
-	y <= temp(width)
+	y <= temp(width);
 
 end behave;
