@@ -98,23 +98,25 @@ begin
 	------------SUB-----------
 	INVERTER: inverter generic map (width <= 32) port map(b,invers_b);
     MUX_SUB: mux2 generic map(width <= 32) port map(b,invers_b,alucontrol(2));
+		
+	------------SLT-----------
+	OR_GATE: or_gate generic map(width <= 32) port map(ADD_result,not_equal);
+	zero <= not not_equals;
+	SLT_result(0) <= ADD_result(31) or (not not_equal);
+	SLT_result(31 downto 1) <= (others => '0');
+	
 	------------ADD-----------
 	ADDER_1: adder port map(a,adder_b,'0',ADD_result);
 	
-	------------SLT-----------
-	OR_GATE: or_gate generic map(width <= 32) port map(ADD_result,not_equal);
+
 	
-	SLT_result(0) <= ADD_result(31) or (not not_equal);
-	SLT_result(31 downto 1) <= (others => '0');
-
-
 
 	--You can set the Values by switching the signals around
 	--ADD alucontrol = 000
 	--SUB alucontrol = 100 would be cool if this could stay like this because i might be able to only use a 4 mux and one adder.
 	--SLT alucontrol = 101 this sets the adder to sub and the output to the segent on the 4mux
 						
-	MUX: mux4 generic map(width <= 32) port map(ADD_result,,,,alucontrol(1 downto 0),result);
+	MUX: mux4 generic map(width <= 32) port map(ADD_result,SLT_result,,,alucontrol(1 downto 0),result);
 
 
 end;
