@@ -1,0 +1,128 @@
+# Loading project mips_alu
+# Compile of arithmetic.vhdl failed with 5 errors.
+# Compile of buildingblocks.vhdl was successful.
+# 2 compiles, 1 failed with 5 errors.
+# Compile of arithmetic.vhdl failed with 4 errors.
+# Compile of buildingblocks.vhdl was successful.
+# 2 compiles, 1 failed with 4 errors.
+# Compile of arithmetic.vhdl was successful.
+# Compile of buildingblocks.vhdl was successful.
+# 2 compiles, 0 failed with no errors.
+vsim work.testbench_alu(test)
+# vsim work.testbench_alu(test) 
+# Start time: 11:37:23 on May 24,2018
+# Loading std.standard
+# Loading std.textio(body)
+# Loading ieee.std_logic_1164(body)
+# Loading ieee.numeric_std(body)
+# Loading work.testbench_alu(test)
+# Loading work.alu(behav)
+# Loading work.inverter(behave)
+# Loading work.mux2(behave)
+# Loading work.or_gate(behave)
+# Loading work.adder(behav)
+# Loading work.fa(behav)
+# Loading work.shift_right_arithmetic(behav)
+# Loading work.mux4(behave)
+add wave -position end  sim:/testbench_alu/alucontrol
+add wave -position end  sim:/testbench_alu/z
+add wave -position end  sim:/testbench_alu/a
+add wave -position end  sim:/testbench_alu/b
+add wave -position end  sim:/testbench_alu/y
+add wave -position end  sim:/testbench_alu/shamt
+# Can't move the Now cursor.
+run
+# ** Warning: NUMERIC_STD.TO_INTEGER: metavalue detected, returning 0
+#    Time: 0 ps  Iteration: 0  Instance: /testbench_alu/dut/SHIFTER
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+# Compile of arithmetic.vhdl was successful.
+run
+vsim work.testbench_alu
+# End time: 11:43:51 on May 24,2018, Elapsed time: 0:06:28
+# Errors: 1, Warnings: 1
+# vsim work.testbench_alu 
+# Start time: 11:43:51 on May 24,2018
+# Loading std.standard
+# Loading std.textio(body)
+# Loading ieee.std_logic_1164(body)
+# Loading ieee.numeric_std(body)
+# Loading work.testbench_alu(test)
+# Loading work.alu(behav)
+# Loading work.inverter(behave)
+# Loading work.mux2(behave)
+# Loading work.or_gate(behave)
+# Loading work.adder(behav)
+# Loading work.fa(behav)
+# Loading work.shift_right_arithmetic(behav)
+# Loading work.mux4(behave)
+add wave -position insertpoint sim:/testbench_alu/dut/*
+add wave -position insertpoint sim:/testbench_alu/*
+run
+# ** Warning: NUMERIC_STD.TO_INTEGER: metavalue detected, returning 0
+#    Time: 0 ps  Iteration: 0  Instance: /testbench_alu/dut/SHIFTER
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+# Compile of arithmetic.vhdl was successful.
+# Compile of buildingblocks.vhdl was successful.
+# 2 compiles, 0 failed with no errors.
+vsim work.testbench_alu(test)
+# End time: 11:46:56 on May 24,2018, Elapsed time: 0:03:05
+# Errors: 0, Warnings: 1
+# vsim work.testbench_alu(test) 
+# Start time: 11:46:56 on May 24,2018
+# Loading std.standard
+# Loading std.textio(body)
+# Loading ieee.std_logic_1164(body)
+# Loading ieee.numeric_std(body)
+# Loading work.testbench_alu(test)
+# Loading work.alu(behav)
+# Loading work.inverter(behave)
+# Loading work.mux2(behave)
+# Loading work.or_gate(behave)
+# Loading work.adder(behav)
+# Loading work.fa(behav)
+# Loading work.shift_right_arithmetic(behav)
+# Loading work.mux4(behave)
+add wave -position insertpoint sim:/testbench_alu/*
+run
+# ** Warning: NUMERIC_STD.TO_INTEGER: metavalue detected, returning 0
+#    Time: 0 ps  Iteration: 0  Instance: /testbench_alu/dut/SHIFTER
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
