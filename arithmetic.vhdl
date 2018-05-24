@@ -131,8 +131,8 @@ begin
 	--OR alucontrol = 010
 	--SRA alucontrol = 011
 	--AND alucontrol = 110
-	--SUB alucontrol = 100 would be cool if this could stay like this because i might be able to only use a 4 mux and one adder.
-	--SLT alucontrol = 101 this sets the adder to sub and the output to the segent on the 4mux
+	--SUB alucontrol = 100
+	--SLT alucontrol = 101 
 						
 	MUX: mux4 generic map(width => 32) port map(ADD_result,SLT_result,temp_OR_AND,SRA_result,alucontrol(1 downto 0),result);
 
@@ -140,7 +140,7 @@ begin
 end;
 
 -- testbench
-library IEEE; use IEEE.STD_LOGIC_1164.all; use IEEE.NUMERIC_STD.all; use STD.ENV.STOP;
+library IEEE; use IEEE.STD_LOGIC_1164.all; use IEEE.NUMERIC_STD.all;
 entity testbench_alu is
 end;
 
