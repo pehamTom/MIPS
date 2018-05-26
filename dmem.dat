@@ -1,5 +1,3 @@
-00000000 Data memory of the mips processor.
-00000000 The 8 first characters of each line
-00000000 encode (in hex) one word (32 bit).
-00000000 The remaining characters of each line 
-00000000 are ignored.
+68676361 a c g h
+7574706f o p t u 
+0000007a z 
