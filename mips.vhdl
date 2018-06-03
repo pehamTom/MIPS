@@ -1,6 +1,6 @@
 -- MIPS processor
 library IEEE; use IEEE.STD_LOGIC_1164.all;
-entity mips is 
+entity mips is
     port(clk, reset:        in STD_LOGIC);
 end;
 
@@ -28,7 +28,7 @@ architecture struct of mips is
          alucontrol:        in STD_LOGIC_VECTOR(2 downto 0);
          zero:              out STD_LOGIC;
          instr:             out STD_LOGIC_VECTOR(31 downto 0));
-       
+
     end component;
     signal memtoreg, memwrite, branchandzero, alusrc, regdst, regwrite, zero, loadByte, storepc: STD_LOGIC := '0';
 	signal jump: STD_LOGIC_VECTOR(1 downto 0) := "00";
@@ -147,7 +147,7 @@ architecture behav of datapath is
          result:        buffer STD_LOGIC_VECTOR(31 downto 0);
          zero:          out STD_LOGIC);
  end component;
- component rf 
+ component regfile
  	port(clk:           in STD_LOGIC;
           we3:           in STD_LOGIC;
           ra1, ra2, wa3: in STD_LOGIC_VECTOR(4 downto 0);
@@ -163,7 +163,7 @@ architecture behav of datapath is
  	port(a:  in STD_LOGIC_VECTOR(31 downto 0);
           rd: out STD_LOGIC_VECTOR(31 downto 0));
  end component;
- component sl2 
+ component sl2
  	port(a: in STD_LOGIC_VECTOR(31 downto 0);
           y: out STD_LOGIC_VECTOR(31 downto 0));
  end component;
@@ -178,30 +178,30 @@ architecture behav of datapath is
           d:          in STD_LOGIC_VECTOR(width-1 downto 0);
           q:          out STD_LOGIC_VECTOR(width-1 downto 0));
  end component;
- component mux4 
+ component mux4
      generic(width: integer);
      port(d0, d1, d2, d3:    in STD_LOGIC_VECTOR(width-1 downto 0);
           s:         in STD_LOGIC_VECTOR(1 downto 0);
           y:         out STD_LOGIC_VECTOR(width-1 downto 0));
- end component; 
- 
+ end component;
+
  signal Op, Funct : std_logic_vector (5 downto 0);
  signal InstrInternal, PC, Immediate, ImmediateShifted, WD3, BranchAddress, BranchAddressA, BranchAddressB, JumpAddress, Result, ALUResult, ReadData, WriteData, NextAddress,
-  SrcA, SrcB, MuxBranch_out, MuxJump_out, MuxStorePc_out, MuxStorePcAddress_out, JumpAddressCombined, ExtendedLoadedByte, WordOrByte: std_logic_vector (31 downto 0);
- signal RF_A1, RF_A2, DestinationReg, DestinationReg1, DestinationReg0, Shamt: std_logic_vector(4 downto 0); 
+  SrcA, SrcB, MuxBranch_out, MuxJump_out, MuxStorePc_out, JumpAddressCombined, ExtendedLoadedByte, WordOrByte: std_logic_vector (31 downto 0);
+ signal RF_A1, RF_A2, DestinationReg, DestinationReg1, DestinationReg0,  MuxStorePcAddress_out, Shamt: std_logic_vector(4 downto 0);
  signal IMM : std_logic_vector (15 downto 0);
  signal LoadedByte : std_logic_vector (7 downto 0);
- 
+
  begin
- 
+
  PC_FF: ff GENERIC MAP (width => 32) PORT MAP (clk, reset, MuxJump_out, PC);
- 
+
  IMemComp: imem PORT MAP (PC, InstrInternal);
- 
+
  instr <= InstrInternal;
- 
- 
- 
+
+
+
  Op <= InstrInternal(31 downto 26);
  Funct <= InstrInternal(5 downto 0);
  DestinationReg0 <= InstrInternal(20 downto 16);
@@ -210,8 +210,8 @@ architecture behav of datapath is
  RF_A2 <= InstrInternal(20 downto 16);
  IMM <= InstrInternal(15 downto 0);
  Shamt <= InstrInternal (10 downto 6);
- 
- RegisterFile: rf PORT MAP (clk, regwrite, RF_A1, RF_A2, DestinationReg, Result, SrcA, WriteData);
+
+ rf: regfile PORT MAP (clk, regwrite, RF_A1, RF_A2, DestinationReg, Result, SrcA, WriteData);
  MUX_SrcB: mux2 GENERIC MAP (width => 32) PORT MAP (WriteData, Immediate, alusrc, SrcB);
  ALUComp: alu PORT MAP (SrcA, SrcB, Shamt, alucontrol, ALUResult, zero);
  MUX_Destination: mux2 GENERIC MAP (width => 5) PORT MAP (DestinationReg0, DestinationReg1, regdst, DestinationReg);
@@ -221,20 +221,20 @@ architecture behav of datapath is
  BranchAddressAdder: adder PORT MAP (ImmediateShifted, NextAddress, '0', BranchAddress);
  NextAddressAdder: adder PORT MAP (PC, "00000000000000000000000000000100", '0', NextAddress);
  JumpAddressShift: sl2 PORT MAP (InstrInternal, JumpAddress);
- 
+
  JumpAddressCombined <= NextAddress(31 downto 28) & JumpAddress(27 downto 0);
- 
+
  MUX_Branch: mux2 GENERIC MAP (width => 32) PORT MAP (NextAddress, BranchAddress, BranchAndZero, MuxBranch_out);
  MUX_Jump: mux4 GENERIC MAP (width => 32) PORT MAP (MuxStorePc_out, JumpAddressCombined, SrcA, std_logic_vector(to_unsigned(0,32)), jump, MuxJump_out);
  MUX_StorePC: mux2 GENERIC MAP (width => 32) PORT MAP (Result, NextAddress, storePc, MuxStorePc_out);
- MUX_StorePCAddress: mux2 GENERIC MAP (width => 32) PORT MAP (DestinationReg, "0000000000000000000000000111111", storePc, MuxStorePcAddress_out);
+ MUX_StorePCAddress: mux2 GENERIC MAP (width => 5) PORT MAP (DestinationReg, "11111", storePc, MuxStorePcAddress_out);
  MUX_LoadByte: mux2 GENERIC MAP (width => 32) PORT MAP (ReadData, ExtendedLoadedByte, loadByte, WordOrByte);
  MUX_ByteIndex: mux4 GENERIC MAP (width => 8) PORT MAP(ReadData(7 downto 0), ReadData(15 downto 8), ReadData(23 downto 16), ReadData(31 downto 24), ALUResult(1 downto 0), LoadedByte);
  SignExtend_ByteIndex: signext GENERIC MAP (width_in => 8, width_out => 32) PORT MAP (LoadedByte, ExtendedLoadedByte);
  MUX_Result: mux2 GENERIC MAP (width => 32) PORT MAP (ALUResult, WordOrByte, memtoreg, Result);
- 
- 
-end; 
+
+
+end;
 
 
 -- testbench
@@ -254,8 +254,8 @@ begin
 
     -- generate clock with 10 ns period
     process begin
-		for i in  1 to 200 loop 
-	        clk <= '1';	
+		for i in  1 to 200 loop
+	        clk <= '1';
 	        wait for 5 ps;
 	        clk <= '0';
     	    wait for 5 ps;
