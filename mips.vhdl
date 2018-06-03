@@ -40,46 +40,50 @@ entity controller is
          memtoreg, memwrite:    out STD_LOGIC;
          branchandzero, alusrc: out STD_LOGIC;
          regdst, regwrite:      out STD_LOGIC;
-         jump		            out STD_LOGIC;
+         lb:                    out STD_LOGIC;
+         storepc:               out STD_LOGIC;
+         jump		                out STD_LOGIC_VECTOR(1 downto 0);
          alucontrol:            out STD_LOGIC_VECTOR(2 downto 0));
 end;
 
 architecture struct of controller is
     signal branch:  STD_LOGIC := '0';
     signal controls: STD_LOGIC_VECTOR(9 downto 0) := "0000000000";
-begin    
+begin
     process(op, funct) begin
 		-- TODO: Set controll signals accordingly. Use - to denote don't cares and 0 or 1 if the value is fixed.
         case op is
             when "000000" => -- R-Type
                 case funct is
-                    when "100000" => controls <= "----------"; -- ADD
-                    when "100010" => controls <= "----------"; -- SUB
-                    when "100100" => controls <= "----------"; -- AND
-                    when "100101" => controls <= "----------"; -- OR
-                    when "101010" => controls <= "----------"; -- SLT
-                    when "001000" => controls <= "----------"; -- JR
-					when "000011" => controls <= "----------"; -- SRA
+                    when "100000" => controls <= "110000-000010"; -- ADD
+                    when "100010" => controls <= "110000-000110"; -- SUB
+                    when "100100" => controls <= "110000-000-00"; -- AND
+                    when "100101" => controls <= "110000-000-01"; -- OR
+                    when "101010" => controls <= "110000-000111"; -- SLT
+                    when "001000" => controls <= "0---0---10---"; -- JR
+					          when "000011" => controls <= "11-000-000011"; -- SRA
                     when others   => controls <= "----------";
                 end case;
-            when "100011" => controls <= "----------"; -- LW
-            when "101011" => controls <= "----------"; -- SW
-            when "000100" => controls <= "----------"; -- BEQ
-            when "001000" => controls <= "----------"; -- ADDI
-            when "000010" => controls <= "----------"; -- J
-            when "000011" => controls <= "----------"; -- JAL
-            when "100000" => controls <= "----------"; -- LB
+            when "100011" => controls <= "1010100000010"; -- LW
+            when "101011" => controls <= "0-101---00010"; -- SW
+            when "000100" => controls <= "0-110--000110"; -- BEQ
+            when "001000" => controls <= "101000-000010"; -- ADDI
+            when "000010" => controls <= "0---0---01---"; -- J
+            when "000011" => controls <= "1---0--101---"; -- JAL
+            when "100000" => controls <= "1010011000010"; -- LB
             when others   => controls <= "----------"; -- illegal op
         end case;
     end process;
 
-    regwrite     <= controls(9);
-    regdst       <= controls(8);
-    alusrc       <= controls(7);
-    branch       <= controls(6);
-    memwrite     <= controls(5);
-    memtoreg     <= controls(4);
-    jump         <= controls(3);
+    regwrite     <= controls(12);
+    regdst       <= controls(11);
+    alusrc       <= controls(10);
+    branch       <= controls(9);
+    memwrite     <= controls(8);
+    memtoreg     <= controls(7);
+    lb           <= controls(6);
+    storepc      <= controls(5);
+    jump         <= controls(4 downto 3);
     alucontrol   <= controls(2 downto 0);
 
     branchandzero <= branch and zero;
