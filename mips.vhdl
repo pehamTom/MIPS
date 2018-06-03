@@ -55,7 +55,7 @@ end;
 
 architecture struct of controller is
     signal branch:  STD_LOGIC := '0';
-    signal controls: STD_LOGIC_VECTOR(9 downto 0) := "0000000000";
+    signal controls: STD_LOGIC_VECTOR(12 downto 0) := "0000000000000";
 begin
     process(op, funct) begin
 		-- TODO: Set controll signals accordingly. Use - to denote don't cares and 0 or 1 if the value is fixed.
@@ -69,7 +69,7 @@ begin
                     when "101010" => controls <= "110000-000111"; -- SLT
                     when "001000" => controls <= "0---0---10---"; -- JR
 					          when "000011" => controls <= "11-000-000011"; -- SRA
-                    when others   => controls <= "----------";
+                    when others   => controls <= "-------------";
                 end case;
             when "100011" => controls <= "1010100000010"; -- LW
             when "101011" => controls <= "0-101---00010"; -- SW
@@ -78,7 +78,7 @@ begin
             when "000010" => controls <= "0---0---01---"; -- J
             when "000011" => controls <= "1---0--101---"; -- JAL
             when "100000" => controls <= "1010011000010"; -- LB
-            when others   => controls <= "----------"; -- illegal op
+            when others   => controls <= "-------------"; -- illegal op
         end case;
     end process;
 
@@ -168,10 +168,12 @@ architecture behav of datapath is
           y: out STD_LOGIC_VECTOR(31 downto 0));
  end component;
  component signext
+   generic(width_in, width_out: integer);
  	port(a: in STD_LOGIC_VECTOR(width_in-1  downto 0);
           y: out STD_LOGIC_VECTOR(width_out-1 downto 0));
  end component;
  component ff
+   generic(width: integer);
  	port(clk, reset: in STD_LOGIC;
           d:          in STD_LOGIC_VECTOR(width-1 downto 0);
           q:          out STD_LOGIC_VECTOR(width-1 downto 0));
@@ -184,17 +186,17 @@ architecture behav of datapath is
  end component; 
  
  signal Op, Funct : std_logic_vector (5 downto 0);
- signal MemToReg, MemWrite, Branch, BranchAndZero std_logic;
- signal InstrInternal, PC, Immediate, ImmediateShifted, WD3, BranchAddress, BranchAddressA, BranchAddressB, JumpAddress, Result, ALUResult, ReadData, WriteData, NextAddress, SrcA, SrcB, MuxBranch_out, MuxJump_out, MuxStorePc_out, MuxStorePcAddress_out, JumpAddressCombined, ExtendedLoadedByte, WordOrByte: std_logic_vector (31 downto 0);
+ signal InstrInternal, PC, Immediate, ImmediateShifted, WD3, BranchAddress, BranchAddressA, BranchAddressB, JumpAddress, Result, ALUResult, ReadData, WriteData, NextAddress,
+  SrcA, SrcB, MuxBranch_out, MuxJump_out, MuxStorePc_out, MuxStorePcAddress_out, JumpAddressCombined, ExtendedLoadedByte, WordOrByte: std_logic_vector (31 downto 0);
  signal RF_A1, RF_A2, DestinationReg, DestinationReg1, DestinationReg0, Shamt: std_logic_vector(4 downto 0); 
  signal IMM : std_logic_vector (15 downto 0);
- signal JumpAddress, JumpAddressUnshifted : std_logic_vector (25 downto 0);
  signal LoadedByte : std_logic_vector (7 downto 0);
  
+ begin
  
- PC_FF: ff PORT MAP (clk, reset, mux2_out, PC)
+ PC_FF: ff GENERIC MAP (width => 32) PORT MAP (clk, reset, MuxJump_out, PC);
  
- IMem: imem PORT MAP (PC, InstrInternal)
+ IMemComp: imem PORT MAP (PC, InstrInternal);
  
  instr <= InstrInternal;
  
@@ -207,30 +209,29 @@ architecture behav of datapath is
  RF_A1 <= InstrInternal(25 downto 21);
  RF_A2 <= InstrInternal(20 downto 16);
  IMM <= InstrInternal(15 downto 0);
- JumpAddressUnshifted <= InstrInternal(25 downto 0);
  Shamt <= InstrInternal (10 downto 6);
  
- RegisterFile: rf PORT MAP (clk, regwrite, RF_A1, RF_A2, DestinationReg, Result, SrcA, WriteData)
- MUX_SrcB: mux2 GENERIC MAP (width => 32) PORT MAP (WriteData, Immediate, alusrc, SrcB)
- ALU: alu PORT MAP (SrcA, SrcB, Shamt, alucontrol, ALUResult, zero)
- MUX_Destination: mux2 GENERIC MAP (width => 5) PORT MAP (DestinationReg0, DestinationReg1, regdst, DestinationReg)
- DataMemory: dmem PORT MAP (clk, memwrite, AluResult, WriteData, ReadData)
- ImmediateSignExt: signext GENERIC MAP (width_in => 16, width_out => 32) PORT MAP (IMM, Immediate)
- ImmediateShift: sl2 PORT MAP (Immediate, ImmediateShifted)
- BranchAddressAdder: adder PORT MAP (ImmediateShifted, NextAddress, '0', BranchAddress)
- NextAddress: adder PORT MAP (PC, "0000000000000000000000000000100", '0', NextAddress)
- JumpAddressShift: sl2 PORT MAP (instr, JumpAddress)
+ RegisterFile: rf PORT MAP (clk, regwrite, RF_A1, RF_A2, DestinationReg, Result, SrcA, WriteData);
+ MUX_SrcB: mux2 GENERIC MAP (width => 32) PORT MAP (WriteData, Immediate, alusrc, SrcB);
+ ALUComp: alu PORT MAP (SrcA, SrcB, Shamt, alucontrol, ALUResult, zero);
+ MUX_Destination: mux2 GENERIC MAP (width => 5) PORT MAP (DestinationReg0, DestinationReg1, regdst, DestinationReg);
+ DataMemory: dmem PORT MAP (clk, memwrite, AluResult, WriteData, ReadData);
+ ImmediateSignExt: signext GENERIC MAP (width_in => 16, width_out => 32) PORT MAP (IMM, Immediate);
+ ImmediateShift: sl2 PORT MAP (Immediate, ImmediateShifted);
+ BranchAddressAdder: adder PORT MAP (ImmediateShifted, NextAddress, '0', BranchAddress);
+ NextAddressAdder: adder PORT MAP (PC, "00000000000000000000000000000100", '0', NextAddress);
+ JumpAddressShift: sl2 PORT MAP (InstrInternal, JumpAddress);
  
  JumpAddressCombined <= NextAddress(31 downto 28) & JumpAddress(27 downto 0);
  
- MUX_Branch: mux2 GENERIC MAP (width => 32) PORT MAP (NextAddress, BranchAddress, BranchAndZero, MuxBranch_out)
- MUX_Jump: mux4 GENERIC MAP (width => 32) PORT MAP (Mux1_out, JumpAddressCombined, SrcA, open, jump, MuxJump_out)
- MUX_StorePC: mux2 GENERIC MAP (width => 32) PORT MAP (Result, NextAddress, storePc, MuxStorePc_out)
- MUX_StorePCAddress: mux2 GENERIC MAP (width => 32) PORT MAP (DestinationReg, "0000 0000 0000 0000 0000 0000 0011 1111", storePc, MuxStorePcAddress_out)
- MUX_LoadByte: mux2 GENERIC MAP (width => 32) PORT MAP (ReadData, ExtendedLoadedByte, loadByte, WordOrByte)
- MUX_ByteIndex: mux4 GENERIC MAP (width => 8) PORT MAP(ReadData(7 downto 0), ReadData(15 downto 8), ReadData(23 downto 16), ReadData(31 downto 24), ALUResult(1 downto 0, LoadedByte)
- SignExtend_ByteIndex: signext GENERIC MAP (width_in => 8, width_out => 32) PORT MAP (LoadedByte, ExtendedLoadedByte)
- MUX_Result: mux2 GENERIC MAP (width => 32) PORT MAP (ALUResult, WordOrByte, memtoreg, Result)
+ MUX_Branch: mux2 GENERIC MAP (width => 32) PORT MAP (NextAddress, BranchAddress, BranchAndZero, MuxBranch_out);
+ MUX_Jump: mux4 GENERIC MAP (width => 32) PORT MAP (MuxStorePc_out, JumpAddressCombined, SrcA, std_logic_vector(to_unsigned(0,32)), jump, MuxJump_out);
+ MUX_StorePC: mux2 GENERIC MAP (width => 32) PORT MAP (Result, NextAddress, storePc, MuxStorePc_out);
+ MUX_StorePCAddress: mux2 GENERIC MAP (width => 32) PORT MAP (DestinationReg, "0000000000000000000000000111111", storePc, MuxStorePcAddress_out);
+ MUX_LoadByte: mux2 GENERIC MAP (width => 32) PORT MAP (ReadData, ExtendedLoadedByte, loadByte, WordOrByte);
+ MUX_ByteIndex: mux4 GENERIC MAP (width => 8) PORT MAP(ReadData(7 downto 0), ReadData(15 downto 8), ReadData(23 downto 16), ReadData(31 downto 24), ALUResult(1 downto 0), LoadedByte);
+ SignExtend_ByteIndex: signext GENERIC MAP (width_in => 8, width_out => 32) PORT MAP (LoadedByte, ExtendedLoadedByte);
+ MUX_Result: mux2 GENERIC MAP (width => 32) PORT MAP (ALUResult, WordOrByte, memtoreg, Result);
  
  
 end; 
