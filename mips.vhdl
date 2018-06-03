@@ -6,30 +6,37 @@ end;
 
 architecture struct of mips is
     component controller
-        port(op, funct:             in STD_LOGIC_VECTOR(5 downto 0);
-             zero:                  in STD_LOGIC;
-             memtoreg, memwrite:    out STD_LOGIC;
-             branchandzero, alusrc:         out STD_LOGIC;
-             regdst, regwrite:      out STD_LOGIC;
-             jump:                  out STD_LOGIC;
-             alucontrol:            out STD_LOGIC_VECTOR(2 downto 0));
+    port(op, funct:             in STD_LOGIC_VECTOR(5 downto 0);
+         zero:                  in STD_LOGIC;
+         memtoreg, memwrite:    out STD_LOGIC;
+         branchandzero, alusrc: out STD_LOGIC;
+         regdst, regwrite:      out STD_LOGIC;
+         lb:                    out STD_LOGIC;
+         storepc:               out STD_LOGIC;
+         jump:		                out STD_LOGIC_VECTOR(1 downto 0);
+         alucontrol:            out STD_LOGIC_VECTOR(2 downto 0));
     end component;
     component datapath
-        port(clk, reset:        in STD_LOGIC;
-             memtoreg, branchandzero:   in STD_LOGIC;
-             alusrc, regdst:    in STD_LOGIC;
-             regwrite, jump:    in STD_LOGIC;
-             memwrite:          in STD_LOGIC;
-             alucontrol:        in STD_LOGIC_VECTOR(2 downto 0);
-             zero:              out STD_LOGIC;
-             instr:             out STD_LOGIC_VECTOR(31 downto 0));
+    port(clk, reset:        in STD_LOGIC;
+         memtoreg, branchandzero:   in STD_LOGIC;
+         alusrc, regdst:    in STD_LOGIC;
+         regwrite:    		in STD_LOGIC;
+		 jump: 				in STD_LOGIC_VECTOR(1 downto 0);
+         memwrite:          in STD_LOGIC;
+		 storePc:			in STD_LOGIC;
+		 loadByte: 			in STD_LOGIC;
+         alucontrol:        in STD_LOGIC_VECTOR(2 downto 0);
+         zero:              out STD_LOGIC;
+         instr:             out STD_LOGIC_VECTOR(31 downto 0));
+       
     end component;
-    signal memtoreg, memwrite, branchandzero, alusrc, regdst, regwrite, jump, zero: STD_LOGIC := '0';
+    signal memtoreg, memwrite, branchandzero, alusrc, regdst, regwrite, zero, loadByte, storepc: STD_LOGIC := '0';
+	signal jump: STD_LOGIC_VECTOR(1 downto 0) := "00";
     signal alucontrol: STD_LOGIC_VECTOR(2 downto 0) := "000";
     signal instr: STD_LOGIC_VECTOR(31 downto 0);
 begin
-    cont: controller port map(instr(31 downto 26), instr(5 downto 0), zero, memtoreg, memwrite, branchandzero, alusrc, regdst, regwrite, jump, alucontrol);
-    dp: datapath port map(clk, reset, memtoreg, branchandzero, alusrc, regdst, regwrite, jump, memwrite, alucontrol, zero, instr);
+    cont: controller port map(instr(31 downto 26), instr(5 downto 0), zero, memtoreg, memwrite, branchandzero, alusrc, regdst, regwrite, loadByte, storepc, jump, alucontrol);
+    dp: datapath port map(clk, reset, memtoreg, branchandzero, alusrc, regdst, regwrite, jump, memwrite, storePc, loadByte, alucontrol, zero, instr);
 end;
 
 -- Controller
@@ -42,7 +49,7 @@ entity controller is
          regdst, regwrite:      out STD_LOGIC;
          lb:                    out STD_LOGIC;
          storepc:               out STD_LOGIC;
-         jump		                out STD_LOGIC_VECTOR(1 downto 0);
+         jump:		                out STD_LOGIC_VECTOR(1 downto 0);
          alucontrol:            out STD_LOGIC_VECTOR(2 downto 0));
 end;
 
@@ -89,14 +96,18 @@ begin
     branchandzero <= branch and zero;
 end;
 
+
 -- datapath
 library IEEE; use IEEE.STD_LOGIC_1164.all; use IEEE.NUMERIC_STD.all;
 entity datapath is
     port(clk, reset:        in STD_LOGIC;
          memtoreg, branchandzero:   in STD_LOGIC;
          alusrc, regdst:    in STD_LOGIC;
-         regwrite, jump:    in STD_LOGIC;
+         regwrite:    		in STD_LOGIC;
+		 jump: 				in STD_LOGIC_VECTOR(1 downto 0);
          memwrite:          in STD_LOGIC;
+		 storePc:			in STD_LOGIC;
+		 loadByte: 			in STD_LOGIC;
          alucontrol:        in STD_LOGIC_VECTOR(2 downto 0);
          zero:              out STD_LOGIC;
          instr:             out STD_LOGIC_VECTOR(31 downto 0));
@@ -131,6 +142,7 @@ architecture behav of datapath is
  end component;
  component alu
  	port(a, b:          in STD_LOGIC_VECTOR(31 downto 0);
+		 shamt: 		in STD_LOGIC_VECTOR(4 downto 0);
          alucontrol:    in STD_LOGIC_VECTOR(2 downto 0);
          result:        buffer STD_LOGIC_VECTOR(31 downto 0);
          zero:          out STD_LOGIC);
@@ -151,7 +163,7 @@ architecture behav of datapath is
  	port(a:  in STD_LOGIC_VECTOR(31 downto 0);
           rd: out STD_LOGIC_VECTOR(31 downto 0));
  end component;
- component sl 
+ component sl2 
  	port(a: in STD_LOGIC_VECTOR(31 downto 0);
           y: out STD_LOGIC_VECTOR(31 downto 0));
  end component;
@@ -159,44 +171,68 @@ architecture behav of datapath is
  	port(a: in STD_LOGIC_VECTOR(width_in-1  downto 0);
           y: out STD_LOGIC_VECTOR(width_out-1 downto 0));
  end component;
+ component ff
+ 	port(clk, reset: in STD_LOGIC;
+          d:          in STD_LOGIC_VECTOR(width-1 downto 0);
+          q:          out STD_LOGIC_VECTOR(width-1 downto 0));
+ end component;
+ component mux4 
+     generic(width: integer);
+     port(d0, d1, d2, d3:    in STD_LOGIC_VECTOR(width-1 downto 0);
+          s:         in STD_LOGIC_VECTOR(1 downto 0);
+          y:         out STD_LOGIC_VECTOR(width-1 downto 0));
+ end component; 
  
  signal Op, Funct : std_logic_vector (5 downto 0);
  signal MemToReg, MemWrite, Branch, BranchAndZero std_logic;
- signal Instr, PC, Immediate, ImmediateShifted, WD3, BranchAddress, BranchAddressA, BranchAddressB, JumpAddress, Result, ALUResult, ReadData, WriteData, NextAddress, SrcA, SrcB, Mux1_out, Mux2_out: std_logic_vector (31 downto 0);
- signal RF_A1, RF_A2, DestinationReg, DestinationReg_1, DestinationReg_0: std_logic_vector(4 downto 0); 
+ signal InstrInternal, PC, Immediate, ImmediateShifted, WD3, BranchAddress, BranchAddressA, BranchAddressB, JumpAddress, Result, ALUResult, ReadData, WriteData, NextAddress, SrcA, SrcB, MuxBranch_out, MuxJump_out, MuxStorePc_out, MuxStorePcAddress_out, JumpAddressCombined, ExtendedLoadedByte, WordOrByte: std_logic_vector (31 downto 0);
+ signal RF_A1, RF_A2, DestinationReg, DestinationReg1, DestinationReg0, Shamt: std_logic_vector(4 downto 0); 
  signal IMM : std_logic_vector (15 downto 0);
  signal JumpAddress, JumpAddressUnshifted : std_logic_vector (25 downto 0);
+ signal LoadedByte : std_logic_vector (7 downto 0);
  
  
- IMem: imem PORT MAP (PC, instr)
+ PC_FF: ff PORT MAP (clk, reset, mux2_out, PC)
+ 
+ IMem: imem PORT MAP (PC, InstrInternal)
+ 
+ instr <= InstrInternal;
  
  
- Op <= instr(31 downto 26);
- Funct <= instr(5 downto 0);
- DestinationReg0 <= instr(20 downto 16);
- DestinationReg1 <= instr(15 downto 11);
- RF_A1 <= instr(25 downto 21);
- RF_A2 <= instr(20 downto 16);
- IMM <= instr(15 downto 0);
- JumpAddressUnshifted <= instr(25 downto 0);
  
+ Op <= InstrInternal(31 downto 26);
+ Funct <= InstrInternal(5 downto 0);
+ DestinationReg0 <= InstrInternal(20 downto 16);
+ DestinationReg1 <= InstrInternal(15 downto 11);
+ RF_A1 <= InstrInternal(25 downto 21);
+ RF_A2 <= InstrInternal(20 downto 16);
+ IMM <= InstrInternal(15 downto 0);
+ JumpAddressUnshifted <= InstrInternal(25 downto 0);
+ Shamt <= InstrInternal (10 downto 6);
  
- ControlUnit: controller PORT MAP (Op, Funct, zero, memtoreg, memwrite, BranchAndZero, alusrc, regdst, regwrite, jump, alucontrol)
  RegisterFile: rf PORT MAP (clk, regwrite, RF_A1, RF_A2, DestinationReg, Result, SrcA, WriteData)
- MUX_Immediate: mux2 PORT MAP (WriteData, Immediate, alusrc, SrcB)
- ALU: alu PORT MAP (SrcA, SrcB, alucontrol, ALUResult, zero)
- MUX_Destination: mux2 PORT MAP (Destination_0, Destination_1, regdst, DestinationReg)
+ MUX_SrcB: mux2 GENERIC MAP (width => 32) PORT MAP (WriteData, Immediate, alusrc, SrcB)
+ ALU: alu PORT MAP (SrcA, SrcB, Shamt, alucontrol, ALUResult, zero)
+ MUX_Destination: mux2 GENERIC MAP (width => 5) PORT MAP (DestinationReg0, DestinationReg1, regdst, DestinationReg)
  DataMemory: dmem PORT MAP (clk, memwrite, AluResult, WriteData, ReadData)
- MUX_Result: mux2 PORT MAP (ALUResult, ReadData, memtoreg, Result)
- ImmediateSignExt: signext PORT MAP (IMM, Immediate)
- ImmediateShift: sl PORT MAP (Immediate, ImmediateShifted)
- BranchAddress: adder PORT MAP (ImmediateShifted, NextAddress, 0, BranchAddress)
- NextAddress: adder PORT MAP (PC, 0000000000000000000000000000100, 0, NextAddress)
- JumpAddressShift: sl PORT MAP (JumpAddressUnshifted, JumpAddress)
- MUX1: mux2 PORT MAP (NextAddress, BranchAddress, BranchAndZero, Mux1_out)
- MUX2: mux2 PORT MAP (Mux1_out, JumpAddress, jump, Mux2_out)
+ ImmediateSignExt: signext GENERIC MAP (width_in => 16, width_out => 32) PORT MAP (IMM, Immediate)
+ ImmediateShift: sl2 PORT MAP (Immediate, ImmediateShifted)
+ BranchAddressAdder: adder PORT MAP (ImmediateShifted, NextAddress, '0', BranchAddress)
+ NextAddress: adder PORT MAP (PC, "0000000000000000000000000000100", '0', NextAddress)
+ JumpAddressShift: sl2 PORT MAP (instr, JumpAddress)
  
-
+ JumpAddressCombined <= NextAddress(31 downto 28) & JumpAddress(27 downto 0);
+ 
+ MUX_Branch: mux2 GENERIC MAP (width => 32) PORT MAP (NextAddress, BranchAddress, BranchAndZero, MuxBranch_out)
+ MUX_Jump: mux4 GENERIC MAP (width => 32) PORT MAP (Mux1_out, JumpAddressCombined, SrcA, open, jump, MuxJump_out)
+ MUX_StorePC: mux2 GENERIC MAP (width => 32) PORT MAP (Result, NextAddress, storePc, MuxStorePc_out)
+ MUX_StorePCAddress: mux2 GENERIC MAP (width => 32) PORT MAP (DestinationReg, "0000 0000 0000 0000 0000 0000 0011 1111", storePc, MuxStorePcAddress_out)
+ MUX_LoadByte: mux2 GENERIC MAP (width => 32) PORT MAP (ReadData, ExtendedLoadedByte, loadByte, WordOrByte)
+ MUX_ByteIndex: mux4 GENERIC MAP (width => 8) PORT MAP(ReadData(7 downto 0), ReadData(15 downto 8), ReadData(23 downto 16), ReadData(31 downto 24), ALUResult(1 downto 0, LoadedByte)
+ SignExtend_ByteIndex: signext GENERIC MAP (width_in => 8, width_out => 32) PORT MAP (LoadedByte, ExtendedLoadedByte)
+ MUX_Result: mux2 GENERIC MAP (width => 32) PORT MAP (ALUResult, WordOrByte, memtoreg, Result)
+ 
+ 
 end; 
 
 
