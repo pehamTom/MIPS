@@ -71,7 +71,7 @@ begin
 					          when "000011" => controls <= "11-000-000011"; -- SRA
                     when others   => controls <= "-------------";
                 end case;
-            when "100011" => controls <= "1010100000010"; -- LW
+            when "100011" => controls <= "1010010000010"; -- LW
             when "101011" => controls <= "0-101---00010"; -- SW
             when "000100" => controls <= "0-110--000110"; -- BEQ
             when "001000" => controls <= "101000-000010"; -- ADDI
@@ -186,8 +186,8 @@ architecture behav of datapath is
  end component;
 
  signal Op, Funct : std_logic_vector (5 downto 0);
- signal InstrInternal, PC, Immediate, ImmediateShifted, WD3, BranchAddress, BranchAddressA, BranchAddressB, JumpAddress, Result, ALUResult, ReadData, WriteData, NextAddress,
-  SrcA, SrcB, MuxBranch_out, MuxJump_out, MuxStorePc_out, JumpAddressCombined, ExtendedLoadedByte, WordOrByte: std_logic_vector (31 downto 0);
+ signal InstrInternal, PC, Immediate, ImmediateShifted, WD3, BranchAddress, JumpAddress, Result, ALUResult, ReadData, WriteData, NextAddress,
+  SrcA, SrcB, MuxBranch_out, MuxJump_out, JumpAddressCombined, ExtendedLoadedByte, WordOrByte: std_logic_vector (31 downto 0);
  signal RF_A1, RF_A2, DestinationReg, DestinationReg1, DestinationReg0,  MuxStorePcAddress_out, Shamt: std_logic_vector(4 downto 0);
  signal IMM : std_logic_vector (15 downto 0);
  signal LoadedByte : std_logic_vector (7 downto 0);
@@ -211,7 +211,7 @@ architecture behav of datapath is
  IMM <= InstrInternal(15 downto 0);
  Shamt <= InstrInternal (10 downto 6);
 
- rf: regfile PORT MAP (clk, regwrite, RF_A1, RF_A2, DestinationReg, Result, SrcA, WriteData);
+ rf: regfile PORT MAP (clk, regwrite, RF_A1, RF_A2, DestinationReg, WD3, SrcA, WriteData);
  MUX_SrcB: mux2 GENERIC MAP (width => 32) PORT MAP (WriteData, Immediate, alusrc, SrcB);
  ALUComp: alu PORT MAP (SrcA, SrcB, Shamt, alucontrol, ALUResult, zero);
  MUX_Destination: mux2 GENERIC MAP (width => 5) PORT MAP (DestinationReg0, DestinationReg1, regdst, DestinationReg);
@@ -225,8 +225,8 @@ architecture behav of datapath is
  JumpAddressCombined <= NextAddress(31 downto 28) & JumpAddress(27 downto 0);
 
  MUX_Branch: mux2 GENERIC MAP (width => 32) PORT MAP (NextAddress, BranchAddress, BranchAndZero, MuxBranch_out);
- MUX_Jump: mux4 GENERIC MAP (width => 32) PORT MAP (MuxStorePc_out, JumpAddressCombined, SrcA, std_logic_vector(to_unsigned(0,32)), jump, MuxJump_out);
- MUX_StorePC: mux2 GENERIC MAP (width => 32) PORT MAP (Result, NextAddress, storePc, MuxStorePc_out);
+ MUX_Jump: mux4 GENERIC MAP (width => 32) PORT MAP (MuxBranch_out, JumpAddressCombined, SrcA, std_logic_vector(to_unsigned(0,32)), jump, MuxJump_out);
+ MUX_StorePC: mux2 GENERIC MAP (width => 32) PORT MAP (Result, NextAddress, storePc, WD3);
  MUX_StorePCAddress: mux2 GENERIC MAP (width => 5) PORT MAP (DestinationReg, "11111", storePc, MuxStorePcAddress_out);
  MUX_LoadByte: mux2 GENERIC MAP (width => 32) PORT MAP (ReadData, ExtendedLoadedByte, loadByte, WordOrByte);
  MUX_ByteIndex: mux4 GENERIC MAP (width => 8) PORT MAP(ReadData(7 downto 0), ReadData(15 downto 8), ReadData(23 downto 16), ReadData(31 downto 24), ALUResult(1 downto 0), LoadedByte);
