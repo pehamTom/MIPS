@@ -1,14 +1,14 @@
-20800100  addi $a0 $0 0x100   // lui $4, 4097 [str]       ; 9: la $a0, str # addi $a0, $0, 0 # load adress of str as argument for function call
-0c000017  jal 0x0000005c [str_len] ; 10: jal str_len # call str_len
+20040100  addi $a0 $0 0x100   // lui $4, 4097 [str]       ; 9: la $a0, str # addi $a0, $0, 0 # load adress of str as argument for function call
+0c00000e  jal 0x00000038 [str_len] ; 10: jal str_len # call str_len
 20500000  addi $16, $2, 0          ; 11: addi $s0, $v0, 0 # save length of string in $s0
-20800100  addi $a0 $0 0x100       ; 12: la $a0, str # addi $a0, $0, 0 # pass adress of str as first argument
+20040100  addi $a0 $0 0x100       ; 12: la $a0, str # addi $a0, $0, 0 # pass adress of str as first argument
 20050000  addi $5, $0, 0           ; 13: addi $a1, $0, 0 # pass adress 0 a second argument
 2046ffff  addi $6, $2, -1          ; 14: addi $a2, $v0, -1 # pass length-1 as third argument
 20070070  addi $7, $0, 112         ; 15: addi $a3, $0, 112 # pass 'p' as fourth argument
-0c000023  jal 0x0000008c [bin_search]; 16: jal bin_search # call bin_search
-20510000  addi $17, $2, 0          ; 17: addi $s1, $v0, 0 # save return value in $s1 
+0c00001a  jal 0x00000068 [bin_search]; 16: jal bin_search # call bin_search
+20510000  addi $17, $2, 0          ; 17: addi $s1, $v0, 0 # save return value in $s1
 20070066  addi $7, $0, 102         ; 18: addi $a3, $0, 102 # pass 'f' as fourth argument
-0c000023  jal 0x0000008c [bin_search]; 19: jal bin_search # call bin_search
+0c00001a  jal 0x00000068 [bin_search]; 19: jal bin_search # call bin_search
 20520000  addi $18, $2, 0          ; 20: addi $s2, $v0, 0 # save return value in $s2
 2002000a  addi $2, $0, 10          ; 21: addi $v0, $0, 10
 0000000c  syscall                  ; 22: syscall # terminate program
@@ -19,7 +19,7 @@ afbe0000  sw $30, 0($29)           ; 26: sw $fp, 0($sp) # store old framepointer
 80890000  lb $9, 0($4)             ; 31: lb $t1, 0($a0) # dereference pointer
 11200002  beq $9, $0, 12 [end_loop-0x00400070]
 20840001  addi $4, $4, 1           ; 33: addi $a0, $a0, 1
-0800001b  j 0x0000006c [loop]      ; 34: j loop
+08000012  j 0x00000048 [loop]      ; 34: j loop
 00881022  sub $2, $4, $8           ; 36: sub $v0, $a0, $t0 # calculate length
 8fbe0000  lw $30, 0($29)           ; 37: lw $fp, 0($sp) # restore framepointer
 23bd0004  addi $29, $29, 4         ; 38: addi $sp, $sp, 4
@@ -39,11 +39,11 @@ afbe0000  sw $30, 0($29)           ; 43: sw $fp, 0($sp) # store old framepointer
 00e9502a  slt $10, $7, $9          ; 58: slt $t2, $a3, $t1
 11400002  beq $10, $0, 12 [else-0x004000c0]
 2106ffff  addi $6, $8, -1          ; 60: addi $a2, $t0, -1
-08000026  j 0x00000098 [loop2]     ; 61: j loop2
+0800001D  j 0x00000074 [loop2]     ; 61: j loop2
 21050001  addi $5, $8, 1           ; 63: addi $a1, $t0, 1
-08000026  j 0x00000098 [loop2]     ; 64: j loop2
+0800001D  j 0x00000074 [loop2]     ; 64: j loop2
 21020000  addi $2, $8, 0           ; 67: addi $v0, $t0, 0
-08000038  j 0x000000e0 [ret]       ; 68: j ret
+0800002F  j 0x000000bc [ret]       ; 68: j ret
 2002ffff  addi $2, $0, -1          ; 71: addi $v0, $0, -1
 8fbe0000  lw $30, 0($29)           ; 73: lw $fp, 0($sp)
 23bd0004  addi $29, $29, 4         ; 74: addi $sp, $sp, 4

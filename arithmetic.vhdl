@@ -111,9 +111,7 @@ begin
     MUX_SUB: mux2 generic map(width => 32) port map(b,invers_b,alucontrol(2),adder_b);
 
 	------------SLT-----------
-	OR_GATE1: or_gate generic map(width => 32) port map(ADD_result,not_equal);
-	zero <= not not_equal;
-	SLT_result(0) <= ADD_result(31) or (not not_equal);
+	SLT_result(0) <= ADD_result(31);
 	SLT_result(31 downto 1) <= (others => '0');
 
 
@@ -121,7 +119,7 @@ begin
 	ADDER_1: adder port map(a,adder_b,alucontrol(2),ADD_result);
 
 	------------SRA-----------
-	SHIFTER: shift_right_arithmetic port map(a,shamt,SRA_result);
+	SHIFTER: shift_right_arithmetic port map(b,shamt,SRA_result);
 
 	MUX_OR_AND: mux2 generic map(width => 32) port map(SRA_result,SLT_result,alucontrol(2),temp_SLT_SRA);
 	-----------AND OR-----------
@@ -138,88 +136,3 @@ begin
 
 	MUX: mux4 generic map(width => 32) port map(AND_result,OR_result,ADD_result,temp_SLT_SRA,alucontrol(1 downto 0),result);
 end;
---
--- -- testbench
--- library IEEE; use IEEE.STD_LOGIC_1164.all; use IEEE.NUMERIC_STD.all;
--- entity testbench_alu is
--- end;
---
--- architecture test of testbench_alu is
---     component alu
---         port(a, b:          in STD_LOGIC_VECTOR(31 downto 0);
--- 			 shamt:			in STD_LOGIC_VECTOR(4 downto 0);
--- 			 alucontrol:    in STD_LOGIC_VECTOR(2 downto 0);
--- 			 result:        buffer STD_LOGIC_VECTOR(31 downto 0);
--- 			 zero:          out STD_LOGIC);
---     end component;
---     signal z: STD_LOGIC := '0';
--- 	signal alucontrol: STD_LOGIC_VECTOR(2 downto 0);
--- 	signal a,b,y: STD_LOGIC_VECTOR(31 downto 0);
--- 	signal shamt: STD_LOGIC_VECTOR(4 downto 0);
--- begin
---     -- initiate device to be tested
---     dut: alu port map(a,b,shamt, alucontrol, y, z);
---
---     process begin
--- 		shamt <= std_logic_vector(to_unsigned(0,shamt'length));
--- 		--add
---         alucontrol <= "010";
--- 		a <= std_logic_vector(to_unsigned(128,a'length));
--- 		b <= std_logic_vector(to_unsigned(100,a'length));
---         wait for 100 ps;
--- 		--sub
---         alucontrol <= "110";
--- 		a <= std_logic_vector(to_unsigned(128,a'length));
--- 		b <= std_logic_vector(to_unsigned(100,a'length));
---         wait for 100 ps;
--- 		--slt
---         alucontrol <= "111";
--- 		a <= std_logic_vector(to_unsigned(128,a'length));
--- 		b <= std_logic_vector(to_unsigned(100,a'length));
---         wait for 100 ps;
---
---         alucontrol <= "111";
--- 		a <= std_logic_vector(to_unsigned(28,a'length));
--- 		b <= std_logic_vector(to_unsigned(100,a'length));
---         wait for 100 ps;
---
---         alucontrol <= "111";
--- 		a <= std_logic_vector(to_unsigned(100,a'length));
--- 		b <= std_logic_vector(to_unsigned(100,a'length));
---         wait for 100 ps;
---
--- 		--sra
---         alucontrol <= "011";
--- 		a <= std_logic_vector(to_unsigned(2800122,a'length));
--- 		shamt <= std_logic_vector(to_unsigned(10,shamt'length));
---         wait for 100 ps;
---
---         alucontrol <= "011";
--- 		a <= std_logic_vector(to_unsigned(2800122,a'length));
--- 		shamt <= std_logic_vector(to_unsigned(16,shamt'length));
---         wait for 100 ps;
---
---         alucontrol <= "011";
--- 		a <= std_logic_vector(to_unsigned(2800122,a'length));
--- 		shamt <= std_logic_vector(to_unsigned(1,shamt'length));
---         wait for 100 ps;
--- 		--and
---         alucontrol <= "000";
--- 		a <= std_logic_vector(to_unsigned(280,a'length));
--- 		b <= std_logic_vector(to_unsigned(110,b'length));
---         wait for 100 ps;
--- 		--or
--- 		alucontrol <= "001";
--- 		a <= std_logic_vector(to_unsigned(280,a'length));
--- 		b <= std_logic_vector(to_unsigned(110,a'length));
---         wait for 100 ps;
---         --equal
---         alucontrol <= "110";
--- 		a <= std_logic_vector(to_unsigned(110,a'length));
--- 		b <= std_logic_vector(to_unsigned(110,b'length));
---         wait for 100 ps;
---
---
--- 		wait;
---     end process;
--- end;

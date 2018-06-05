@@ -68,12 +68,12 @@ begin
                     when "100101" => controls <= "110000-000-01"; -- OR
                     when "101010" => controls <= "110000-000111"; -- SLT
                     when "001000" => controls <= "0---0---10---"; -- JR
-					          when "000011" => controls <= "11-000-000011"; -- SRA
+					          when "000011" => controls <= "110000-000011"; -- SRA
                     when others   => controls <= "-------------";
                 end case;
             when "100011" => controls <= "1010010000010"; -- LW
             when "101011" => controls <= "0-101---00010"; -- SW
-            when "000100" => controls <= "0-110--000110"; -- BEQ
+            when "000100" => controls <= "0-010--000110"; -- BEQ
             when "001000" => controls <= "101000-000010"; -- ADDI
             when "000010" => controls <= "0---0---01---"; -- J
             when "000011" => controls <= "1---0--101---"; -- JAL
@@ -211,7 +211,7 @@ architecture behav of datapath is
  IMM <= InstrInternal(15 downto 0);
  Shamt <= InstrInternal (10 downto 6);
 
- rf: regfile PORT MAP (clk, regwrite, RF_A1, RF_A2, DestinationReg, WD3, SrcA, WriteData);
+ rf: regfile PORT MAP (clk, regwrite, RF_A1, RF_A2, MuxStorePcAddress_out, WD3, SrcA, WriteData);
  MUX_SrcB: mux2 GENERIC MAP (width => 32) PORT MAP (WriteData, Immediate, alusrc, SrcB);
  ALUComp: alu PORT MAP (SrcA, SrcB, Shamt, alucontrol, ALUResult, zero);
  MUX_Destination: mux2 GENERIC MAP (width => 5) PORT MAP (DestinationReg0, DestinationReg1, regdst, DestinationReg);
