@@ -20,7 +20,7 @@ entity adder is
 end;
 
 architecture behav of adder is
-  component FA 
+  component FA
     port(a,b,cin: in STD_LOGIC;
          cout, s: out STD_LOGIC);
   end component;
@@ -41,7 +41,7 @@ entity shift_right_arithmetic is
 		 y: out STD_LOGIC_VECTOR(31 downto 0));
 end;
 
-architecture behav of shift_right_arithmetic is 
+architecture behav of shift_right_arithmetic is
 begin
 	y <= std_logic_vector(shift_right(unsigned(a),to_integer(unsigned(b))));
 end;
@@ -50,13 +50,13 @@ end;
 -- Arithmetic Logic Unit (ALU)
 library IEEE; use IEEE.STD_LOGIC_1164.all; use IEEE.NUMERIC_STD.all;
 entity alu is
-    port(a, b:          in STD_LOGIC_VECTOR(31 downto 0);
-		 shamt:			in STD_LOGIC_VECTOR(4 downto 0);
-         alucontrol:    in STD_LOGIC_VECTOR(2 downto 0);
-         result:        buffer STD_LOGIC_VECTOR(31 downto 0);
-         zero:          out STD_LOGIC);
+    port(a, b:          in STD_LOGIC_VECTOR(31 downto 0); --operands
+		 shamt:			in STD_LOGIC_VECTOR(4 downto 0);  --amount to shift b by when SRA instruction is used
+		 alucontrol:    in STD_LOGIC_VECTOR(2 downto 0);  --controlls which operation the ALU should perform 
+         result:        buffer STD_LOGIC_VECTOR(31 downto 0); --result of the operation
+		 zero:          out STD_LOGIC);					  --zero is set in the case that a SUB operation
+														  --results in 0
 end;
-
 architecture behav of alu is
  -------components-------------
  component adder
@@ -65,161 +65,95 @@ architecture behav of alu is
 			 y: out STD_LOGIC_VECTOR(31 downto 0)
 			);
  end component;
+
  component mux4
     generic(width: integer);
     port(d0, d1, d2, d3:    in STD_LOGIC_VECTOR(width-1 downto 0);
          s:         in STD_LOGIC_VECTOR(1 downto 0);
          y:         out STD_LOGIC_VECTOR(width-1 downto 0));
  end component;
- component inverter
-	generic(width: integer);
-	port(input: in STD_LOGIC_VECTOR(width-1 downto 0);
-		 output: out STD_LOGIC_VECTOR(width-1 downto 0));
- end component;
+
  component mux2
 	 generic(width: integer);
 		port(d0, d1: in STD_LOGIC_VECTOR(width-1 downto 0);
 			 s: 	 in STD_LOGIC;
 			 y:		 out STD_LOGIC_VECTOR(width-1 downto 0));
  end component;
+
+--this or gate will take width inputs and has 1 output.
  component or_gate
 	generic(width: integer);
 	port(a: in STD_LOGIC_VECTOR(width-1 downto 0);
 		 y: out STD_LOGIC
 	    );
  end component;
- component shift_right_arithmetic 
+
+ component shift_right_arithmetic
 	port(a: in STD_LOGIC_VECTOR(31 downto 0);
 		 b: in STD_LOGIC_VECTOR(4 downto 0);
 		 y: out STD_LOGIC_VECTOR(31 downto 0));
  end component;
- 
- 
- ----------singals-----------
- signal ADD_result: STD_LOGIC_VECTOR(31 downto 0);
- signal SLT_result: STD_LOGIC_VECTOR(31 downto 0);
- signal not_equal: STD_LOGIC;
- signal invers_b: STD_LOGIC_VECTOR(31 downto 0);
- signal adder_b: STD_LOGIC_VECTOR(31 downto 0);
- signal SRA_result: STD_LOGIC_VECTOR(31 downto 0);
- signal AND_result: STD_LOGIC_VECTOR(31 downto 0);
+
+
+ ----------signals-----------
+ signal ADD_result: STD_LOGIC_VECTOR(31 downto 0);		
+ signal SLT_result: STD_LOGIC_VECTOR(31 downto 0);		
+ signal not_equal: STD_LOGIC;							
+ signal adder_b: STD_LOGIC_VECTOR(31 downto 0);			--adder_b either B or the invers of B depending		
+														--alucontrol(2). Output of MUX_SUB. 
+ signal SRA_result: STD_LOGIC_VECTOR(31 downto 0);		--result of the shift_right_arithmetic component
+ signal AND_result: STD_LOGIC_VECTOR(31 downto 0);	
  signal OR_result: STD_LOGIC_VECTOR(31 downto 0);
- signal temp_SLT_SRA: STD_LOGIC_VECTOR(31 downto 0);
-begin 
+ signal temp_SLT_SRA: STD_LOGIC_VECTOR(31 downto 0);	--signal contains SLT_result if alucontrol(2) is 1 
+														--and SRA_result if alucontrol(2) is 0. Connected to
+														--the result output of the ALU when alucontrol(1 downto 0) is 11
+begin
 	------------SUB-----------
-	INVERTER1: inverter generic map (width => 32) port map(b,invers_b);
-    MUX_SUB: mux2 generic map(width => 32) port map(b,invers_b,alucontrol(2),adder_b);
-		
+	--MUX_SUB is used to select between the subtracting and adding by sending the b or the inverted
+	--b signal to the adder
+	MUX_SUB: mux2 generic map(width => 32) 
+				  port map(b,not b,alucontrol(2),adder_b);
+
 	------------SLT-----------
-	OR_GATE1: or_gate generic map(width => 32) port map(ADD_result,not_equal);
-	zero <= not not_equal;
-	SLT_result(0) <= ADD_result(31) or (not not_equal);
+	--To implement the SLT operation we use the adder in sub mode -> alucontrol(2) = 1
+	--When a is smaller then b the sign bit will be set. The sign bit is connectet to the LSB of the 
+	--SLT_Result and all other bits of the SLT_Result are set to 0. 
+	SLT_result(0) <= ADD_result(31);
 	SLT_result(31 downto 1) <= (others => '0');
 	
+	--A = B if the result of a SUB instruction is 0. a0 or a1 or .... or a31 ist 0 wenn A = B
+	OR_GATE: or_gate generic map(width => 32) port map (ADD_result,not_equal);
+	zero <= not not_equal;
 	
 	------------ADD-----------
+	--ADDER_1 is used for add, sub and slt operation
 	ADDER_1: adder port map(a,adder_b,alucontrol(2),ADD_result);
-	
-	------------SRA-----------
-	SHIFTER: shift_right_arithmetic port map(a,shamt,SRA_result);
 
-	MUX_OR_AND: mux2 generic map(width => 32) port map(SRA_result,SLT_result,alucontrol(2),temp_SLT_SRA);
+	------------SRA-----------
+	SHIFTER: shift_right_arithmetic port map(b,shamt,SRA_result);
+
+	--When alucontrol(1 downto 0) is 11, alucontrol(2) will be used to select between SLT and SRA
+	MUX_SHIFT_SLT: mux2 generic map(width => 32) port map(SRA_result,
+														  SLT_result,
+														  alucontrol(2),temp_SLT_SRA);
 	-----------AND OR-----------
 	AND_result <= a and adder_b;
 	OR_result <= a or adder_b;
 
 	--You can set the Values by switching the signals around
-	--ADD alucontrol = 010 .
-	--OR alucontrol = 001 .
-	--SRA alucontrol = 011.
-	--AND alucontrol = 000.
-	--SUB alucontrol = 110 .
-	--SLT alucontrol = 111 .
-						
-	MUX: mux4 generic map(width => 32) port map(AND_result,OR_result,ADD_result,temp_SLT_SRA,alucontrol(1 downto 0),result);
-end;
+	
+	--AND alucontrol = 000
+	--OR alucontrol	 = 001
+	--ADD alucontrol = 010
+	--SRA alucontrol = 011
+	--SUB alucontrol = 110
+	--SLT alucontrol = 111
 
--- testbench
-library IEEE; use IEEE.STD_LOGIC_1164.all; use IEEE.NUMERIC_STD.all;
-entity testbench_alu is
-end;
-
-architecture test of testbench_alu is
-    component alu
-        port(a, b:          in STD_LOGIC_VECTOR(31 downto 0);
-			 shamt:			in STD_LOGIC_VECTOR(4 downto 0);
-			 alucontrol:    in STD_LOGIC_VECTOR(2 downto 0);
-			 result:        buffer STD_LOGIC_VECTOR(31 downto 0);
-			 zero:          out STD_LOGIC);
-    end component;
-    signal z: STD_LOGIC := '0';
-	signal alucontrol: STD_LOGIC_VECTOR(2 downto 0);
-	signal a,b,y: STD_LOGIC_VECTOR(31 downto 0);
-	signal shamt: STD_LOGIC_VECTOR(4 downto 0);
-begin
-    -- initiate device to be tested
-    dut: alu port map(a,b,shamt, alucontrol, y, z);
-
-    process begin
-		shamt <= std_logic_vector(to_unsigned(0,shamt'length));
-		--add
-        alucontrol <= "010";
-		a <= std_logic_vector(to_unsigned(128,a'length));
-		b <= std_logic_vector(to_unsigned(100,a'length));
-        wait for 100 ps;
-		--sub
-        alucontrol <= "110";
-		a <= std_logic_vector(to_unsigned(128,a'length));
-		b <= std_logic_vector(to_unsigned(100,a'length));
-        wait for 100 ps;
-		--slt
-        alucontrol <= "111";
-		a <= std_logic_vector(to_unsigned(128,a'length));
-		b <= std_logic_vector(to_unsigned(100,a'length));
-        wait for 100 ps;
-
-        alucontrol <= "111";
-		a <= std_logic_vector(to_unsigned(28,a'length));
-		b <= std_logic_vector(to_unsigned(100,a'length));
-        wait for 100 ps;
-		
-        alucontrol <= "111";
-		a <= std_logic_vector(to_unsigned(100,a'length));
-		b <= std_logic_vector(to_unsigned(100,a'length));
-        wait for 100 ps;
-		
-		--sra
-        alucontrol <= "011";
-		a <= std_logic_vector(to_unsigned(2800122,a'length));
-		shamt <= std_logic_vector(to_unsigned(10,shamt'length));
-        wait for 100 ps;
-		
-        alucontrol <= "011";
-		a <= std_logic_vector(to_unsigned(2800122,a'length));
-		shamt <= std_logic_vector(to_unsigned(16,shamt'length));
-        wait for 100 ps;
-
-        alucontrol <= "011";
-		a <= std_logic_vector(to_unsigned(2800122,a'length));
-		shamt <= std_logic_vector(to_unsigned(1,shamt'length));
-        wait for 100 ps;
-		--and
-        alucontrol <= "000";
-		a <= std_logic_vector(to_unsigned(280,a'length));
-		b <= std_logic_vector(to_unsigned(110,b'length));
-        wait for 100 ps;
-		--or
-		alucontrol <= "001";
-		a <= std_logic_vector(to_unsigned(280,a'length));
-		b <= std_logic_vector(to_unsigned(110,a'length));
-        wait for 100 ps;
-        --equal
-        alucontrol <= "110";
-		a <= std_logic_vector(to_unsigned(110,a'length));
-		b <= std_logic_vector(to_unsigned(110,b'length));
-        wait for 100 ps;
-		
-		
-		wait;
-    end process;
+	MUX: mux4	generic map(width => 32) 
+				port map(AND_result,	-- 00 a and b
+						 OR_result,		-- 01 a or b
+						 ADD_result,	-- 10 adder output. Either a + b or a - b.
+						 temp_SLT_SRA,	-- 11 SLT_result if alucontrol(2) is 1 and
+										--	  SRA_result if alucontrol(2) is 0.
+						 alucontrol(1 downto 0),result);
 end;
